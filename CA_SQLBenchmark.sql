@@ -1058,19 +1058,6 @@ BEGIN
   
             EXECUTE dbo.CA_DspPatterns_SQL; 
                
-            SELECT
-               BenchmarkStartTime         
-              ,BatchStartTime
-              ,BatchDurationMS
-              ,NewPatternsInBatch
-              ,StressLevel
-              ,BenchmarkPerspective
-              ,Description1
-              ,Description2
-              ,Description3
-            FROM dbo.CA_BenchmarkResults
-            WHERE BenchmarkStartTime = @BenchmarkStartTime;
-  
         END
   
     END TRY
