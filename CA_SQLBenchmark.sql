@@ -19,8 +19,87 @@ Description - https://paulbrewer.wordpress.com/2015/07/19/sql-server-performance
 /*=============================================================================================================
 Create Game of Life Solutions
 =============================================================================================================*/
+   
+--------------------------------------------------------------------------------------------------------------
+-- Create Tables
+IF EXISTS (SELECT * FROM sys.tables WHERE [name] = 'Merkle')
+	DROP TABLE dbo.Merkle;
+GO
+
+CREATE TABLE dbo.Merkle
+(
+    ID INT IDENTITY(1,1),
+    Session_ID INT NOT NULL,
+    Pattern_ID INT NOT NULL, 
+    x INT NOT NULL, 
+    y INT NOT NULL,
+    CONSTRAINT PK_Merkle PRIMARY KEY NONCLUSTERED
+    (ID) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+  
+CREATE CLUSTERED INDEX CIX_Merkle_Session_ID ON dbo.Merkle(Session_ID, Pattern_ID, x, y, ID); 
+GO
+            
+IF EXISTS (SELECT * FROM sys.tables WHERE [name] = 'GridReference')
+	DROP TABLE dbo.GridReference;
+GO
+
+CREATE TABLE dbo.GridReference 
+(
+    ID INT IDENTITY(1,1), 
+    Session_ID INT,
+    Pattern_ID INT NOT NULL, 
+    x INT NOT NULL,
+    y INT NOT NULL, 
+    merkle_exists BIT NULL DEFAULT 0,
+    neighbours INT NULL DEFAULT 0,
+    CONSTRAINT PK_GridReference PRIMARY KEY NONCLUSTERED
+    (ID) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+  
+CREATE CLUSTERED INDEX CIX_GridReference_Session_ID ON dbo.GridReference(Session_ID, Pattern_ID, x, y, ID); 
+GO
+  
+CREATE NONCLUSTERED INDEX CIX_GridReference_MerkelExists ON dbo.GridReference(Session_ID, Pattern_ID, merkle_exists) INCLUDE(x,y); 
+GO
+
+IF EXISTS (SELECT * FROM sys.tables WHERE [name] = 'CA_BenchmarkResults')
+	DROP TABLE dbo.CA_BenchmarkResults;
+GO
+        
+CREATE TABLE dbo.CA_BenchmarkResults(
+    ID INT IDENTITY(1,1) NOT NULL,
+    Session_ID INT NOT NULL,
+    BenchmarkStartTime DATETIME NOT NULL,
+    BatchStartTime DATETIME NOT NULL,
+    BatchDurationMS BIGINT, 
+    NewPatternsInBatch INT NOT NULL,
+    StressLevel TINYINT NOT NULL,
+    BenchmarkPerspective CHAR(3) NOT NULL,
+    GeneratorSucceeded BIT DEFAULT(1) NOT NULL,
+    ServerName VARCHAR(250) NULL ,
+    Description1 VARCHAR(50) NULL,
+    Description2 VARCHAR(50) NULL,
+    Description3 VARCHAR(50) NULL,
+    CONSTRAINT [PK_TimingResults] PRIMARY KEY NONCLUSTERED (ID) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+  
+CREATE CLUSTERED INDEX CIX_BenchmarkResults_Session_ID ON dbo.CA_BenchmarkResults(Session_ID); 
+GO
+  
+
+  ---------------------------------------------------------------------------------------------------------------
+-- Error handling
 -- http://www.sommarskog.se/error_handling/Part1.html 
-CREATE PROCEDURE error_handler_sp AS
+
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'error_handler_sp')
+	EXEC ('CREATE PROC dbo.error_handler_sp AS SELECT ''stub version, to be replaced''')
+GO 
+
+ALTER PROCEDURE error_handler_sp AS
     
 DECLARE @errmsg   nvarchar(2048),
         @severity tinyint,
@@ -43,70 +122,11 @@ RAISERROR('%s', @severity, @state, @errmsg);
    
 GO
    
-   
---------------------------------------------------------------------------------------------------------------
--- Create Tables
-CREATE TABLE dbo.Merkle
-(
-    z INT IDENTITY(1,1),
-    Session_ID INT NOT NULL,
-    Pattern_ID INT NOT NULL, 
-    x INT NOT NULL, 
-    y INT NOT NULL,
-    CONSTRAINT PK_Merkle PRIMARY KEY NONCLUSTERED
-    (z) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-  
-CREATE CLUSTERED INDEX CIX_Merkle_Session_ID ON dbo.Merkle(Session_ID, Pattern_ID, x, y, z); 
-GO
-            
-CREATE TABLE dbo.GridReference 
-(
-    z INT IDENTITY(1,1), 
-    Session_ID INT,
-    Pattern_ID INT NOT NULL, 
-    x INT NOT NULL,
-    y INT NOT NULL, 
-    merkle_exists BIT NULL DEFAULT 0,
-    neighbours INT NULL DEFAULT 0,
-    CONSTRAINT PK_GridReference PRIMARY KEY NONCLUSTERED
-    (z) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-  
-CREATE CLUSTERED INDEX CIX_GridReference_Session_ID ON dbo.GridReference(Session_ID, Pattern_ID, x, y, z); 
-GO
-  
-CREATE NONCLUSTERED INDEX CIX_GridReference_MerkelExists ON dbo.GridReference(Session_ID, Pattern_ID, merkle_exists) INCLUDE(x,y); 
-GO
-        
-CREATE TABLE dbo.CA_BenchmarkResults(
-    z INT IDENTITY(1,1) NOT NULL,
-    Session_ID INT NOT NULL,
-    BenchmarkStartTime DATETIME NOT NULL,
-    BatchStartTime DATETIME NOT NULL,
-    BatchDurationMS BIGINT, 
-    NewPatternsInBatch INT NOT NULL,
-    StressLevel TINYINT NOT NULL,
-    BenchmarkPerspective CHAR(3) NOT NULL,
-    GeneratorSucceeded BIT DEFAULT(1) NOT NULL,
-    ServerName VARCHAR(250) NULL ,
-    Description1 VARCHAR(50) NULL,
-    Description2 VARCHAR(50) NULL,
-    Description3 VARCHAR(50) NULL,
-    CONSTRAINT [PK_TimingResults] PRIMARY KEY NONCLUSTERED (z) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-  
-CREATE CLUSTERED INDEX CIX_BenchmarkResults_Session_ID ON dbo.CA_BenchmarkResults(Session_ID); 
-GO
-  
         
 ---------------------------------------------------------------------------------------------------------------
--- Initial pattern setup
+-- Pattern lifecycle birth
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_InitPatterns')
-EXEC ('CREATE PROC dbo.CA_InitPatterns AS SELECT ''stub version, to be replaced''')
+	EXEC ('CREATE PROC dbo.CA_InitPatterns AS SELECT ''stub version, to be replaced''')
 GO 
                    
 ALTER PROCEDURE dbo.CA_InitPatterns @StressLevel INT = 2
@@ -329,7 +349,7 @@ GO
 ---------------------------------------------------------------------------------------------------------------
 -- Display Patterns 
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_DspPatterns_SQL')
-EXEC ('CREATE PROC dbo.CA_DspPatterns_SQL AS SELECT ''stub version, to be replaced''')
+	EXEC ('CREATE PROC dbo.CA_DspPatterns_SQL AS SELECT ''stub version, to be replaced''')
 GO 
                 
 ALTER PROCEDURE dbo.CA_DspPatterns_SQL @Pattern_ID INT = 0, @Session_ID INT = @@SPID
@@ -420,7 +440,7 @@ GO
 ---------------------------------------------------------------------------------------------------------------
 -- Procedure to generate x enumerations, test cycle factors
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_GenPatterns_IO')
-EXEC ('CREATE PROC dbo.CA_GenPatterns_IO AS SELECT ''stub version, to be replaced''')
+	EXEC ('CREATE PROC dbo.CA_GenPatterns_IO AS SELECT ''stub version, to be replaced''')
 GO 
                 
 ALTER PROCEDURE dbo.CA_GenPatterns_IO @NewPatterns INT = 1
@@ -574,7 +594,7 @@ GO
 ---------------------------------------------------------------------------------------------------------------
 -- Procedure to generate x enumerations, test cycle factors
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_GenPatterns_CPU')
-EXEC ('CREATE PROC dbo.CA_GenPatterns_CPU AS SELECT ''stub version, to be replaced''')
+	EXEC ('CREATE PROC dbo.CA_GenPatterns_CPU AS SELECT ''stub version, to be replaced''')
 GO 
                 
 ALTER PROCEDURE dbo.CA_GenPatterns_CPU @NewPatterns INT = 1
@@ -917,12 +937,13 @@ END -- Procedure
 GO
   
 ---------------------------------------------------------------------------------------------------------------
--- Hekaton in-memory procedure to save timing results 
-IF OBJECT_ID('SQL_Hekaton_HeartBeat.dbo.CA_TimingResultsSave') IS NOT NULL
-    DROP PROCEDURE dbo.CA_BenchmarkResults;
-GO
+-- Save timing results 
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_TimingResultsSave')
+	EXEC ('CREATE PROC dbo.CA_TimingResultsSave AS SELECT ''stub version, to be replaced''')
+GO 
+     
          
-CREATE PROCEDURE dbo.CA_TimingResultsSave  
+ALTER PROCEDURE dbo.CA_TimingResultsSave  
 (   
     @Session_ID INT, @BenchmarkStartTime DATETIME, @BatchStartTime DATETIME, @BatchDurationMS BIGINT, @NewPatternsInBatch INT, @StressLevel INT, @BenchmarkPerspective CHAR(3), 
     @GeneratorSucceeded BIT, @ServerName VARCHAR(50), @Description1 VARCHAR(50) = NULL, @Description2 VARCHAR(50) = NULL, @Description3 VARCHAR(50) = NULL
@@ -942,58 +963,12 @@ BEGIN
 END -- End Procedure
 GO
          
----------------------------------------------------------------------------------------------------------------
--- Procedure to generate x enumerations, test cycle factors, calls IO or CPU procedures
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_GenPatterns')
-EXEC ('CREATE PROC dbo.CA_GenPatterns AS SELECT ''stub version, to be replaced''')
-GO 
-                
-ALTER PROCEDURE dbo.CA_GenPatterns 
-    @BenchmarkStartTime DATETIME, @NewPatternsInBatch INT, @BenchmarkPerspective VARCHAR(3), @StressLevel TINYINT,
-    @Description1 VARCHAR(50) = NULL, @Description2 VARCHAR(50) = NULL, @Description3 VARCHAR(50) = NULL
-AS
-BEGIN
-         
-SET XACT_ABORT, NOCOUNT ON;
-BEGIN TRY
+
   
-    DECLARE @BatchStartTime DATETIME;
-    DECLARE @BatchDurationMS BIGINT;
-  
-    -- SQL Server 2005 compatibility
-    SET @BatchStartTime = GETDATE();
-       
-    -- Generate patterns
-    IF @BenchmarkPerspective = 'IO'
-        EXEC dbo.CA_GenPatterns_IO @NewPatternsInBatch;
-      
-    IF @BenchmarkPerspective = 'CPU'
-        EXEC dbo.CA_GenPatterns_CPU @NewPatternsInBatch;
-      
-     
-    SET @BatchDurationMS = DATEDIFF(millisecond,@BatchStartTime, GETDATE()); 
-  
-    EXEC dbo.CA_TimingResultsSave @Session_ID = @@SPID, @BenchmarkStartTime = @BenchmarkStartTime, @BatchStartTime = @BatchStartTime, 
-        @BatchDurationMS = @BatchDurationMS, @NewPatternsInBatch = @NewPatternsInBatch, @StressLevel = @StressLevel, 
-        @BenchmarkPerspective = @BenchmarkPerspective, @GeneratorSucceeded = 1, @ServerName = @@SERVERNAME, 
-        @Description1 = @Description1, @Description2 = @Description2, @Description3 = @Description3; 
-      
-        
-END TRY
-BEGIN CATCH
-    IF @@trancount > 0 ROLLBACK TRANSACTION
-    EXEC error_handler_sp
-    RETURN 55555
-END CATCH   
-         
-END;
-GO
-  
-       
 ---------------------------------------------------------------------------------------------------------------
 -- Benchmarking procedure
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_Benchmark')
-EXEC ('CREATE PROC dbo.CA_Benchmark AS SELECT ''stub version, to be replaced''')
+	EXEC ('CREATE PROC dbo.CA_Benchmark AS SELECT ''stub version, to be replaced''')
 GO 
                 
 ALTER PROCEDURE dbo.CA_Benchmark
@@ -1106,4 +1081,51 @@ BEGIN
     END CATCH  
        
 END --Procedure
+GO
+
+---------------------------------------------------------------------------------------------------------------
+-- Procedure to generate x enumerations, test cycle factors, calls IO or CPU procedures
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_GenPatterns')
+	EXEC ('CREATE PROC dbo.CA_GenPatterns AS SELECT ''stub version, to be replaced''')
+GO 
+                
+ALTER PROCEDURE dbo.CA_GenPatterns 
+    @BenchmarkStartTime DATETIME, @NewPatternsInBatch INT, @BenchmarkPerspective VARCHAR(3), @StressLevel TINYINT,
+    @Description1 VARCHAR(50) = NULL, @Description2 VARCHAR(50) = NULL, @Description3 VARCHAR(50) = NULL
+AS
+BEGIN
+         
+SET XACT_ABORT, NOCOUNT ON;
+BEGIN TRY
+  
+    DECLARE @BatchStartTime DATETIME;
+    DECLARE @BatchDurationMS BIGINT;
+  
+    -- SQL Server 2005 compatibility
+    SET @BatchStartTime = GETDATE();
+       
+    -- Generate patterns
+    IF @BenchmarkPerspective = 'IO'
+        EXEC dbo.CA_GenPatterns_IO @NewPatternsInBatch;
+      
+    IF @BenchmarkPerspective = 'CPU'
+        EXEC dbo.CA_GenPatterns_CPU @NewPatternsInBatch;
+      
+     
+    SET @BatchDurationMS = DATEDIFF(millisecond,@BatchStartTime, GETDATE()); 
+  
+    EXEC dbo.CA_TimingResultsSave @Session_ID = @@SPID, @BenchmarkStartTime = @BenchmarkStartTime, @BatchStartTime = @BatchStartTime, 
+        @BatchDurationMS = @BatchDurationMS, @NewPatternsInBatch = @NewPatternsInBatch, @StressLevel = @StressLevel, 
+        @BenchmarkPerspective = @BenchmarkPerspective, @GeneratorSucceeded = 1, @ServerName = @@SERVERNAME, 
+        @Description1 = @Description1, @Description2 = @Description2, @Description3 = @Description3; 
+      
+        
+END TRY
+BEGIN CATCH
+    IF @@trancount > 0 ROLLBACK TRANSACTION
+    EXEC error_handler_sp
+    RETURN 55555
+END CATCH   
+         
+END;
 GO
