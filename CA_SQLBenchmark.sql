@@ -12,7 +12,25 @@ Create Game of Life Solutions
 =============================================================================================================*/
    
 --------------------------------------------------------------------------------------------------------------
--- Create Tables
+-- Create Tables and views
+
+-- A load control table used by Data Factory for incremental loads 
+IF OBJECT_ID('load_control') IS NOT NULL
+	DROP TABLE dbo.load_control;
+GO
+
+CREATE TABLE dbo.load_control 
+(
+	id INT IDENTITY(1,1) PRIMARY KEY, 
+	load_start DATETIME, 
+	load_end DATETIME, 
+	row_count INT, 
+	load_status varchar(10), 
+	updated_at TIMESTAMP
+);
+GO
+
+-- Game of Life patterns and views
 IF EXISTS (SELECT * FROM sys.tables WHERE [name] = 'Merkle')
 	DROP TABLE dbo.Merkle;
 GO
@@ -24,6 +42,7 @@ CREATE TABLE dbo.Merkle
     Pattern_ID INT NOT NULL, 
     x INT NOT NULL, 
     y INT NOT NULL,
+	updated_at TIMESTAMP,
     CONSTRAINT PK_Merkle PRIMARY KEY NONCLUSTERED
     (ID) ON [PRIMARY]
 ) ON [PRIMARY]
@@ -31,7 +50,19 @@ GO
   
 CREATE CLUSTERED INDEX CIX_Merkle_Session_ID ON dbo.Merkle(Session_ID, Pattern_ID, x, y, ID); 
 GO
-            
+
+-- A view of changed Game of Life patterns
+IF EXISTS (SELECT * FROM sys.views WHERE [name] = 'vw_transform_merkle')
+	DROP VIEW dbo.vw_transform_merkle;
+GO
+
+CREATE VIEW [dbo].[vw_transform_merkle] AS
+SELECT m.ID, m.Pattern_ID, m.Session_ID, m.x, m.y, m.updated_at
+FROM dbo.merkle m
+WHERE m.updated_at > (SELECT ISNULL(MAX(updated_at),0) FROM dbo.load_control WHERE load_status NOT IN ('Failed','Running'));
+GO
+
+-- An application work table            
 IF EXISTS (SELECT * FROM sys.tables WHERE [name] = 'GridReference')
 	DROP TABLE dbo.GridReference;
 GO
@@ -55,32 +86,6 @@ GO
   
 CREATE NONCLUSTERED INDEX CIX_GridReference_MerkelExists ON dbo.GridReference(Session_ID, Pattern_ID, merkle_exists) INCLUDE(x,y); 
 GO
-
-IF EXISTS (SELECT * FROM sys.tables WHERE [name] = 'CA_BenchmarkResults')
-	DROP TABLE dbo.CA_BenchmarkResults;
-GO
-        
-CREATE TABLE dbo.CA_BenchmarkResults(
-    ID INT IDENTITY(1,1) NOT NULL,
-    Session_ID INT NOT NULL,
-    BenchmarkStartTime DATETIME NOT NULL,
-    BatchStartTime DATETIME NOT NULL,
-    BatchDurationMS BIGINT, 
-    NewPatternsInBatch INT NOT NULL,
-    StressLevel TINYINT NOT NULL,
-    BenchmarkPerspective CHAR(3) NOT NULL,
-    GeneratorSucceeded BIT DEFAULT(1) NOT NULL,
-    ServerName VARCHAR(250) NULL ,
-    Description1 VARCHAR(50) NULL,
-    Description2 VARCHAR(50) NULL,
-    Description3 VARCHAR(50) NULL,
-    CONSTRAINT [PK_TimingResults] PRIMARY KEY NONCLUSTERED (ID) ON [PRIMARY]
-) ON [PRIMARY]
-GO
-  
-CREATE CLUSTERED INDEX CIX_BenchmarkResults_Session_ID ON dbo.CA_BenchmarkResults(Session_ID); 
-GO
-  
 
   ---------------------------------------------------------------------------------------------------------------
 -- Error handling
@@ -926,36 +931,7 @@ BEGIN
     END CATCH   
 END -- Procedure
 GO
-  
----------------------------------------------------------------------------------------------------------------
--- Save timing results 
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_TimingResultsSave')
-	EXEC ('CREATE PROC dbo.CA_TimingResultsSave AS SELECT ''stub version, to be replaced''')
-GO 
-     
-         
-ALTER PROCEDURE dbo.CA_TimingResultsSave  
-(   
-    @Session_ID INT, @BenchmarkStartTime DATETIME, @BatchStartTime DATETIME, @BatchDurationMS BIGINT, @NewPatternsInBatch INT, @StressLevel INT, @BenchmarkPerspective CHAR(3), 
-    @GeneratorSucceeded BIT, @ServerName VARCHAR(50), @Description1 VARCHAR(50) = NULL, @Description2 VARCHAR(50) = NULL, @Description3 VARCHAR(50) = NULL
-) AS
-BEGIN
-    SET XACT_ABORT, NOCOUNT ON;
-  
-    BEGIN TRY  
-        INSERT INTO dbo.CA_BenchmarkResults (Session_ID, BenchmarkStartTime, BatchStartTime, BatchDurationMS, NewPatternsInBatch, StressLevel, BenchmarkPerspective, GeneratorSucceeded, ServerName, Description1, Description2, Description3)
-        SELECT @Session_ID, @BenchmarkStartTime, @BatchStartTime, @BatchDurationMS, @NewPatternsInBatch, @StressLevel, @BenchmarkPerspective, @GeneratorSucceeded, @ServerName, @Description1, @Description2, @Description3; 
-    END TRY
-    BEGIN CATCH 
-        IF @@trancount > 0 ROLLBACK TRANSACTION
-        EXEC error_handler_sp
-        RETURN 55555
-    END CATCH  
-END -- End Procedure
-GO
-         
-
-  
+    
 ---------------------------------------------------------------------------------------------------------------
 -- Benchmarking procedure
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_Benchmark')
@@ -1045,11 +1021,7 @@ BEGIN
   
   
         IF @DisplayPatterns = 1 
-        BEGIN
-  
-            EXECUTE dbo.CA_DspPatterns_SQL; 
-               
-        END
+            EXECUTE dbo.CA_DspPatterns_SQL;   
   
     END TRY
     BEGIN CATCH
@@ -1076,28 +1048,13 @@ BEGIN
 SET XACT_ABORT, NOCOUNT ON;
 BEGIN TRY
   
-    DECLARE @BatchStartTime DATETIME;
-    DECLARE @BatchDurationMS BIGINT;
-  
-    -- SQL Server 2005 compatibility
-    SET @BatchStartTime = GETDATE();
-       
     -- Generate patterns
     IF @BenchmarkPerspective = 'IO'
         EXEC dbo.CA_GenPatterns_IO @NewPatternsInBatch;
       
     IF @BenchmarkPerspective = 'CPU'
         EXEC dbo.CA_GenPatterns_CPU @NewPatternsInBatch;
-      
-     
-    SET @BatchDurationMS = DATEDIFF(millisecond,@BatchStartTime, GETDATE()); 
-  
-    EXEC dbo.CA_TimingResultsSave @Session_ID = @@SPID, @BenchmarkStartTime = @BenchmarkStartTime, @BatchStartTime = @BatchStartTime, 
-        @BatchDurationMS = @BatchDurationMS, @NewPatternsInBatch = @NewPatternsInBatch, @StressLevel = @StressLevel, 
-        @BenchmarkPerspective = @BenchmarkPerspective, @GeneratorSucceeded = 1, @ServerName = @@SERVERNAME, 
-        @Description1 = @Description1, @Description2 = @Description2, @Description3 = @Description3; 
-      
-        
+              
 END TRY
 BEGIN CATCH
     IF @@trancount > 0 ROLLBACK TRANSACTION
