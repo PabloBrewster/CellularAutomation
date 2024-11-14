@@ -8,7 +8,7 @@ Description - https://paulbrewer.wordpress.com/2015/07/19/sql-server-performance
 Synopsis: Creates 'Game of Life' Solution solution in SQL Server for load simulation.
 ********************************************************************************************
 */
-
+ 
 -- Create Tables and views
 -- A load control table used by Data Factory for incremental loads 
 IF OBJECT_ID('load_control') IS NOT NULL
