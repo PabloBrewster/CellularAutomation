@@ -3,17 +3,8 @@ Cellular Automation - SQL 2005 & Azure compatible workload simulation v3.3 (2017
 (C) 2017, Paul Brewer
                          
 Feedback: paulbrewer@yahoo.co.uk
-Updates: https://paulbrewer.wordpress.com/ca_sqlbenchmark/
 Description - https://paulbrewer.wordpress.com/2015/07/19/sql-server-performance-synthetic-transaction-baseline/
-  
-2017-09-01  - V1    - Cellular Automation procedures written on holiday in France
-2017-09-09  - V1.1  - Add error handling and an explicit transaction boundary around all updates               
-2017-09-28  - V2.1  - Rename the results table, simplify the benchmarking procedure
-2017-09-28  - V2.2  - Table changes and set read committed snapshot to avoid deadlocks during concurrent benchmarks  
-2017-10-01  - v3.1  - Adjust clustered indexes to increase cardinality and better support access patterns
-2017-10-01  - v3.2  - Missing index on grid reference
-2017-10-02  - V3.3  - Schema check before create procedure
-  
+    
 --------------------------------------------------------------------------------------------------------------*/
   
 /*=============================================================================================================
