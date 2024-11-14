@@ -973,7 +973,7 @@ GO
                 
 ALTER PROCEDURE [dbo].[CA_Benchmark]
     @Batches INT = 1, @CPU_Benchmark BIT = 0, @IO_Benchmark BIT = 1, 
-    @NewPatternsInBatch INT = 2, @DisplayPatterns BIT = 0, @Initialize BIT = 0, @StressLevel TINYINT = 2, 
+    @NewPatternsInBatch INT = 3, @DisplayPatterns BIT = 0, @Initialize BIT = 1, @StressLevel TINYINT = 1, 
     @Description1 VARCHAR(50) = NULL, @Description2 VARCHAR(50) = NULL, @Description3 VARCHAR(50) = NULL
 AS
 BEGIN
