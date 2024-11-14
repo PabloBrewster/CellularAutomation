@@ -1,11 +1,13 @@
-/*********************************************************************************************
+/*
+********************************************************************************************
 Cellular Automation - SQL 2005 & Azure compatible workload simulation v3.3 (2017-10-02)
 (C) 2017, Paul Brewer
                          
 Feedback: paulbrewer@yahoo.co.uk
 Description - https://paulbrewer.wordpress.com/2015/07/19/sql-server-performance-synthetic-transaction-baseline/
 Synopsis: Creates 'Game of Life' Solution solution in SQL Server for load simulation.
-*********************************************************************************************/
+********************************************************************************************
+*/
 
 -- Create Tables and views
 -- A load control table used by Data Factory for incremental loads 
