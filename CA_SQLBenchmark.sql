@@ -972,7 +972,7 @@ IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'C
 GO 
                 
 ALTER PROCEDURE [dbo].[CA_Benchmark]
-    @Batches INT = 0, @CPU_Benchmark BIT = 0, @IO_Benchmark BIT = 1, 
+    @Batches INT = 1, @CPU_Benchmark BIT = 0, @IO_Benchmark BIT = 1, 
     @NewPatternsInBatch INT = 2, @DisplayPatterns BIT = 0, @Initialize BIT = 0, @StressLevel TINYINT = 2, 
     @Description1 VARCHAR(50) = NULL, @Description2 VARCHAR(50) = NULL, @Description3 VARCHAR(50) = NULL
 AS
