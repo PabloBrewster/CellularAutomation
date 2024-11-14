@@ -49,7 +49,14 @@ IF EXISTS (SELECT * FROM sys.views WHERE [name] = 'vw_transform_merkle')
 GO
 
 CREATE VIEW [dbo].[vw_transform_merkle] AS
-SELECT m.ID, m.Pattern_ID, m.Session_ID, m.x, m.y, m.updated_at
+SELECT m.ID, m.Pattern_ID, m.Session_ID, m.x, m.y, m.updated_at,
+	CAST('POLYGON( (' +
+		CAST((x+1.2) AS VARCHAR(7)) + ' ' + CAST((y+1.2) AS VARCHAR(7)) + ','  +
+		CAST((x) AS VARCHAR(7)) + ' ' + CAST((y+1.2) AS VARCHAR(7)) + ','  +
+		CAST((x) AS VARCHAR(7)) + ' ' + CAST((y) AS VARCHAR(7)) + ','  +
+		CAST((x+1.2) AS VARCHAR(7)) + ' ' + CAST((y) AS VARCHAR(7)) + ','  +
+		CAST((x+1.2) AS VARCHAR(7)) + ' ' + CAST((y+1.2) AS VARCHAR(7)) +
+	') )' AS GEOMETRY) AS grid_reference
 FROM dbo.merkle m
 WHERE m.updated_at > (SELECT ISNULL(MAX(updated_at),0) FROM dbo.load_control WHERE load_status NOT IN ('Failed','Running'));
 GO
