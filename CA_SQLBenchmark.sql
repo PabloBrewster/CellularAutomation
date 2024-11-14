@@ -4,16 +4,10 @@ Cellular Automation - SQL 2005 & Azure compatible workload simulation v3.3 (2017
                          
 Feedback: paulbrewer@yahoo.co.uk
 Description - https://paulbrewer.wordpress.com/2015/07/19/sql-server-performance-synthetic-transaction-baseline/
-    
---------------------------------------------------------------------------------------------------------------*/
-  
-/*=============================================================================================================
-Creates Game of Life Solution
-=============================================================================================================*/
-   
+Synopsis: Creates 'Game of Life' Solution solution in SQL Server for load simulation.
 --------------------------------------------------------------------------------------------------------------
--- Create Tables and views
 
+-- Create Tables and views
 -- A load control table used by Data Factory for incremental loads 
 IF OBJECT_ID('load_control') IS NOT NULL
 	DROP TABLE dbo.load_control;
