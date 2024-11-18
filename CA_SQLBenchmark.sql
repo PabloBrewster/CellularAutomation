@@ -6,10 +6,8 @@
 -- Synopsis: Creates 'Game of Life' Solution solution in SQL Server for load simulation.
 
 -- Creates the following objects in the current database
-
 -- Table - Merkle: Pattern coordinates in all iterations  
 -- Table - GridReference: Work table
-
 -- Procedure: error_handler_sp
 -- Procedure: CA_InitPatterns: Create initial state patters
 -- Procedure: CA_DspPatterns_SQL: Spatial results from an automation 
@@ -17,7 +15,6 @@
 -- Procedure: CA_GenPatterns_CPU: CPU intensive goemtric 'Game of Life'
 -- Procedure: CA_Benchmark: Main test driver
 -- Procedure: CA_GenPatterns: Invoked by test driver
-
 -- Table - load_control: incremental inserts/updates for cheap ETL solution
 -- View - vw_transform_merkle: : incremental inserts/updates for ETL solution
 
@@ -28,7 +25,7 @@
 --EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 4; 
 
 -- Create Tables and views
--- A load control table used by Data Factory for incremental loads 
+-- Load control table used for cheap incremental ETL solution  
 IF OBJECT_ID('load_control') IS NOT NULL
 	DROP TABLE dbo.load_control;
 GO
@@ -44,7 +41,7 @@ CREATE TABLE dbo.load_control
 );
 GO
 
--- Game of Life patterns and views
+-- Game of Life x,y coordinates over iterations
 IF EXISTS (SELECT * FROM sys.tables WHERE [name] = 'Merkle')
 	DROP TABLE dbo.Merkle;
 GO
@@ -65,7 +62,7 @@ GO
 CREATE CLUSTERED INDEX CIX_Merkle_Session_ID ON dbo.Merkle(Session_ID, Pattern_ID, x, y, ID); 
 GO
 
--- A view of changed Game of Life patterns
+-- Load control view used for cheap incremental ETL solution  
 IF EXISTS (SELECT * FROM sys.views WHERE [name] = 'vw_transform_merkle')
 	DROP VIEW dbo.vw_transform_merkle;
 GO
@@ -455,7 +452,7 @@ GO
             
         
 ---------------------------------------------------------------------------------------------------------------
--- Procedure to generate x enumerations, test cycle factors
+-- Procedure to generate x enumerations set based
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_GenPatterns_IO')
 	EXEC ('CREATE PROC dbo.CA_GenPatterns_IO AS SELECT ''stub version, to be replaced''')
 GO 
@@ -609,7 +606,7 @@ GO
           
          
 ---------------------------------------------------------------------------------------------------------------
--- Procedure to generate x enumerations, test cycle factors
+-- Procedure to generate x enumerations, geometry based
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_GenPatterns_CPU')
 	EXEC ('CREATE PROC dbo.CA_GenPatterns_CPU AS SELECT ''stub version, to be replaced''')
 GO 
@@ -1055,7 +1052,7 @@ END --Procedure
 GO
 
 ---------------------------------------------------------------------------------------------------------------
--- Procedure to generate x enumerations, test cycle factors, calls IO or CPU procedures
+-- Procedure to generate x enumerations,called by main driver procedure CA_Benchmark
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_GenPatterns')
 	EXEC ('CREATE PROC dbo.CA_GenPatterns AS SELECT ''stub version, to be replaced''')
 GO 
