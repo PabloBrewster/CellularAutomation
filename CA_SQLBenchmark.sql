@@ -17,8 +17,12 @@
 -- Procedure: CA_Benchmark: Main test driver
 
 -- Example SSMS Query calls
---EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 1; --EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 2; --EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 3; --EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 4; 
--- Create Tables and views
+--EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 1; 
+--EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 2; 
+--EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 3; 
+--EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 4; 
+
+-- Create Tables
 -- Game of Life table holding x,y coordinates over iterations
 IF EXISTS (SELECT * FROM sys.tables WHERE [name] = 'Merkle')
 	DROP TABLE dbo.Merkle;
@@ -66,7 +70,7 @@ CREATE NONCLUSTERED INDEX CIX_GridReference_MerkelExists ON dbo.GridReference(Se
 GO
 
   ---------------------------------------------------------------------------------------------------------------
--- Error handling
+-- Procedures:
 -- http://www.sommarskog.se/error_handling/Part1.html 
 
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'error_handler_sp')
