@@ -13,35 +13,13 @@
 -- Procedure: CA_DspPatterns_SQL: Spatial results from an automation 
 -- Procedure: CA_GenPatterns_IO: Set based 'Game of Life'
 -- Procedure: CA_GenPatterns_CPU: CPU intensive goemtric 'Game of Life'
+-- Procedure: CA_GenPatterns: Invoked by main test driver
 -- Procedure: CA_Benchmark: Main test driver
--- Procedure: CA_GenPatterns: Invoked by test driver
--- Table - load_control: incremental inserts/updates for cheap ETL solution
--- View - vw_transform_merkle: : incremental inserts/updates for ETL solution
 
 -- Example SSMS Query calls
---EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 1;  
---EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 2;  
---EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 3;  
---EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 4; 
-
+--EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 1; --EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 2; --EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 3; --EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 4; 
 -- Create Tables and views
--- Load control table used for cheap incremental ETL solution  
-IF OBJECT_ID('load_control') IS NOT NULL
-	DROP TABLE dbo.load_control;
-GO
-
-CREATE TABLE dbo.load_control 
-(
-	id INT IDENTITY(1,1) PRIMARY KEY, 
-	load_start DATETIME, 
-	load_end DATETIME, 
-	row_count INT, 
-	load_status varchar(10), 
-	updated_at TIMESTAMP
-);
-GO
-
--- Game of Life x,y coordinates over iterations
+-- Game of Life table holding x,y coordinates over iterations
 IF EXISTS (SELECT * FROM sys.tables WHERE [name] = 'Merkle')
 	DROP TABLE dbo.Merkle;
 GO
@@ -60,24 +38,6 @@ CREATE TABLE dbo.Merkle
 GO
   
 CREATE CLUSTERED INDEX CIX_Merkle_Session_ID ON dbo.Merkle(Session_ID, Pattern_ID, x, y, ID); 
-GO
-
--- Load control view used for cheap incremental ETL solution  
-IF EXISTS (SELECT * FROM sys.views WHERE [name] = 'vw_transform_merkle')
-	DROP VIEW dbo.vw_transform_merkle;
-GO
-
-CREATE VIEW [dbo].[vw_transform_merkle] AS
-SELECT m.ID, m.Pattern_ID, m.Session_ID, m.x, m.y, m.updated_at,
-	CAST('POLYGON( (' +
-		CAST((x+1.2) AS VARCHAR(7)) + ' ' + CAST((y+1.2) AS VARCHAR(7)) + ','  +
-		CAST((x) AS VARCHAR(7)) + ' ' + CAST((y+1.2) AS VARCHAR(7)) + ','  +
-		CAST((x) AS VARCHAR(7)) + ' ' + CAST((y) AS VARCHAR(7)) + ','  +
-		CAST((x+1.2) AS VARCHAR(7)) + ' ' + CAST((y) AS VARCHAR(7)) + ','  +
-		CAST((x+1.2) AS VARCHAR(7)) + ' ' + CAST((y+1.2) AS VARCHAR(7)) +
-	') )' AS GEOMETRY) AS grid_reference
-FROM dbo.merkle m
-WHERE m.updated_at > (SELECT ISNULL(MAX(updated_at),0) FROM dbo.load_control WHERE load_status NOT IN ('Failed','Running'));
 GO
 
 -- An application work table            
@@ -138,7 +98,7 @@ GO
    
         
 ---------------------------------------------------------------------------------------------------------------
--- Pattern lifecycle birth
+-- Initial Patterns
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_InitPatterns')
 	EXEC ('CREATE PROC dbo.CA_InitPatterns AS SELECT ''stub version, to be replaced''')
 GO 
@@ -361,7 +321,7 @@ END; -- Create Procedure
 GO
         
 ---------------------------------------------------------------------------------------------------------------
--- Display Patterns 
+-- Display Spatial Patterns 
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_DspPatterns_SQL')
 	EXEC ('CREATE PROC dbo.CA_DspPatterns_SQL AS SELECT ''stub version, to be replaced''')
 GO 
@@ -449,7 +409,6 @@ BEGIN
               
 END
 GO
-            
         
 ---------------------------------------------------------------------------------------------------------------
 -- Procedure to generate x enumerations set based
@@ -951,6 +910,38 @@ END -- Procedure
 GO
     
 ---------------------------------------------------------------------------------------------------------------
+-- Procedure to generate x enumerations,called by main driver procedure CA_Benchmark
+IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_GenPatterns')
+	EXEC ('CREATE PROC dbo.CA_GenPatterns AS SELECT ''stub version, to be replaced''')
+GO 
+                
+ALTER PROCEDURE dbo.CA_GenPatterns 
+    @BenchmarkStartTime DATETIME, @NewPatternsInBatch INT, @BenchmarkPerspective VARCHAR(3), @StressLevel TINYINT,
+    @Description1 VARCHAR(50) = NULL, @Description2 VARCHAR(50) = NULL, @Description3 VARCHAR(50) = NULL
+AS
+BEGIN
+         
+SET XACT_ABORT, NOCOUNT ON;
+BEGIN TRY
+  
+    -- Generate patterns
+    IF @BenchmarkPerspective = 'IO'
+        EXEC dbo.CA_GenPatterns_IO @NewPatternsInBatch;
+      
+    IF @BenchmarkPerspective = 'CPU'
+        EXEC dbo.CA_GenPatterns_CPU @NewPatternsInBatch;
+              
+END TRY
+BEGIN CATCH
+    IF @@trancount > 0 ROLLBACK TRANSACTION
+    EXEC error_handler_sp
+    RETURN 55555
+END CATCH   
+         
+END;
+GO
+
+---------------------------------------------------------------------------------------------------------------
 -- Benchmarking procedure
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_Benchmark')
 	EXEC ('CREATE PROC dbo.CA_Benchmark AS SELECT ''stub version, to be replaced''')
@@ -1049,36 +1040,4 @@ BEGIN
     END CATCH  
        
 END --Procedure
-GO
-
----------------------------------------------------------------------------------------------------------------
--- Procedure to generate x enumerations,called by main driver procedure CA_Benchmark
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_GenPatterns')
-	EXEC ('CREATE PROC dbo.CA_GenPatterns AS SELECT ''stub version, to be replaced''')
-GO 
-                
-ALTER PROCEDURE dbo.CA_GenPatterns 
-    @BenchmarkStartTime DATETIME, @NewPatternsInBatch INT, @BenchmarkPerspective VARCHAR(3), @StressLevel TINYINT,
-    @Description1 VARCHAR(50) = NULL, @Description2 VARCHAR(50) = NULL, @Description3 VARCHAR(50) = NULL
-AS
-BEGIN
-         
-SET XACT_ABORT, NOCOUNT ON;
-BEGIN TRY
-  
-    -- Generate patterns
-    IF @BenchmarkPerspective = 'IO'
-        EXEC dbo.CA_GenPatterns_IO @NewPatternsInBatch;
-      
-    IF @BenchmarkPerspective = 'CPU'
-        EXEC dbo.CA_GenPatterns_CPU @NewPatternsInBatch;
-              
-END TRY
-BEGIN CATCH
-    IF @@trancount > 0 ROLLBACK TRANSACTION
-    EXEC error_handler_sp
-    RETURN 55555
-END CATCH   
-         
-END;
 GO
