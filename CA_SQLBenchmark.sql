@@ -1,10 +1,32 @@
--- Cellular Automation - SQL 2005 & Azure compatible workload simulation v3.3 (2017-10-02)
+-- Cellular Automation - SQL 2005 & Azure compatible workload simulation 
 -- (C) 2017, Paul Brewer
                          
 -- Feedback: paulbrewer@yahoo.co.uk
 -- Description - https://paulbrewer.wordpress.com/2015/07/19/sql-server-performance-synthetic-transaction-baseline/
 -- Synopsis: Creates 'Game of Life' Solution solution in SQL Server for load simulation.
- 
+
+-- Creates the following objects in the current database
+
+-- Table - Merkle: Pattern coordinates in all iterations  
+-- Table - GridReference: Work table
+
+-- Procedure: error_handler_sp
+-- Procedure: CA_InitPatterns: Create initial state patters
+-- Procedure: CA_DspPatterns_SQL: Spatial results from an automation 
+-- Procedure: CA_GenPatterns_IO: Set based 'Game of Life'
+-- Procedure: CA_GenPatterns_CPU: CPU intensive goemtric 'Game of Life'
+-- Procedure: CA_Benchmark: Main test driver
+-- Procedure: CA_GenPatterns: Invoked by test driver
+
+-- Table - load_control: incremental inserts/updates for cheap ETL solution
+-- View - vw_transform_merkle: : incremental inserts/updates for ETL solution
+
+-- Example SSMS Query calls
+--EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 1;  
+--EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 2;  
+--EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 3;  
+--EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 4; 
+
 -- Create Tables and views
 -- A load control table used by Data Factory for incremental loads 
 IF OBJECT_ID('load_control') IS NOT NULL
