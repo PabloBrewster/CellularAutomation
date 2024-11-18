@@ -9,7 +9,7 @@
 -- Table - Merkle: Pattern coordinates in all iterations  
 -- Table - GridReference: Work table
 -- Procedure: error_handler_sp
--- Procedure: CA_InitPatterns: Create initial state patters
+-- Procedure: CA_InitPatterns: Create 'initial state' patterns
 -- Procedure: CA_DspPatterns_SQL: Spatial results from an automation 
 -- Procedure: CA_GenPatterns_IO: Set based 'Game of Life'
 -- Procedure: CA_GenPatterns_CPU: CPU intensive goemtric 'Game of Life'
