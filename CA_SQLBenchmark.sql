@@ -23,8 +23,8 @@
 --EXECUTE dbo.CA_Benchmark @Geometric_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 1; 
 --EXECUTE dbo.CA_Benchmark @Geometric_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 2; 
 ---- Merkle spawning/over growing Patterns of large complexity
---EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 1; 
---EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 2; 
+--EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 3, @Batches = 1, @AutomationCycles = 1; 
+--EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 3, @Batches = 1, @AutomationCycles = 60; 
 ------------------------------------------------------------------------------------------------------------------------------------------
 -- Create Tables
 -- Game of Life table holding x,y coordinates over iterations
