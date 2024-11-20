@@ -15,14 +15,16 @@
 -- @Batches - Number of times to repeat the entire processing
 
 
--- Example SSMS Query calls, patterns shown in the SSMS Spatial Results tab.
-
+---- Example SSMS Query calls, patterns shown in the SSMS Spatial Results tab.
 ---- Complex Osilating Patterns of simple complexity
---EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 1, @Batches = 1, @AutomationCycles = 1; --EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 1, @Batches = 1, @AutomationCycles = 2; 
+--EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 1, @Batches = 1, @AutomationCycles = 1; 
+--EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 1, @Batches = 1, @AutomationCycles = 2; 
 ---- Complex Osilating Patterns of moderate complexity
---EXECUTE dbo.CA_Benchmark @Geometric_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 1; --EXECUTE dbo.CA_Benchmark @Geometric_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 2; 
+--EXECUTE dbo.CA_Benchmark @Geometric_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 1; 
+--EXECUTE dbo.CA_Benchmark @Geometric_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 2; 
 ---- Merkle spawning/over growing Patterns of large complexity
---EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 1; --EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 2; 
+--EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 1; 
+--EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 2; 
 ------------------------------------------------------------------------------------------------------------------------------------------
 -- Create Tables
 -- Game of Life table holding x,y coordinates over iterations
