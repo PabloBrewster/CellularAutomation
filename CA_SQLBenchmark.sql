@@ -3,25 +3,29 @@
                          
 -- Feedback: paulbrewer@yahoo.co.uk
 -- Description - https://paulbrewer.wordpress.com/2015/07/19/sql-server-performance-synthetic-transaction-baseline/
--- Synopsis: Creates 'Game of Life' Solution solution in SQL Server for load simulation.
+-- Synopsis: Creates 'Game of Life' cellular automation solution in SQL Server for testing testing the integration, configuration, performance and HA/DR setups of newly build SQL Servers, version 2005 up.
 
--- Creates the following objects in the current database
--- Table - Merkle: Pattern coordinates in all iterations  
--- Table - GridReference: Work table
--- Procedure: error_handler_sp
--- Procedure: CA_InitPatterns: Create 'initial state' patterns
--- Procedure: CA_DspPatterns_SQL: Spatial results from an automation 
--- Procedure: CA_GenPatterns_IO: Set based 'Game of Life'
--- Procedure: CA_GenPatterns_CPU: CPU intensive goemtric 'Game of Life'
--- Procedure: CA_GenPatterns: Invoked by main test driver
--- Procedure: CA_Benchmark: Main test driver
+-- Procedure: CA_Benchmark: Main automation driver, Parameters:
+-- @Geometric_CA - Run the geometric autmation engine
+-- @SetBased_CA - Or, run the set base automation engine 
+-- @AutomationCycles - Number of autmation cycles to perform
+-- @DisplayPatterns - Display spatial results in SSMS for fun
+-- @Initialize - Reset or continue with last automation cycle
+-- @InitialPatternComplexity - 1,2,3 growing in complexity
+-- @Batches - Number of times to repeat the entire processing
 
--- Example SSMS Query calls
---EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 1; 
---EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 2; 
---EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 3; 
---EXECUTE dbo.CA_Benchmark @IO_Benchmark = 1, @DisplayPatterns = 1 ,@StressLevel = 2, @Batches = 1, @NewPatternsInBatch = 4; 
 
+---- Example SSMS Query calls, patterns shown in the SSMS Spatial Results tab.
+---- Complex Osilating Patterns of simple complexity
+--EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 1, @Batches = 1, @AutomationCycles = 1; 
+--EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 1, @Batches = 1, @AutomationCycles = 2; 
+---- Complex Osilating Patterns of moderate complexity
+--EXECUTE dbo.CA_Benchmark @Geometric_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 1; 
+--EXECUTE dbo.CA_Benchmark @Geometric_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 2, @Batches = 1, @AutomationCycles = 2; 
+---- Merkle spawning/over growing Patterns of large complexity
+--EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 3, @Batches = 1, @AutomationCycles = 1; 
+--EXECUTE dbo.CA_Benchmark @SetBased_CA = 1, @DisplayPatterns = 1 ,@InitialPatternComplexity = 3, @Batches = 1, @AutomationCycles = 60; 
+------------------------------------------------------------------------------------------------------------------------------------------
 -- Create Tables
 -- Game of Life table holding x,y coordinates over iterations
 IF EXISTS (SELECT * FROM sys.tables WHERE [name] = 'Merkle')
@@ -107,7 +111,7 @@ IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'C
 	EXEC ('CREATE PROC dbo.CA_InitPatterns AS SELECT ''stub version, to be replaced''')
 GO 
                    
-ALTER PROCEDURE dbo.CA_InitPatterns @StressLevel INT = 2
+ALTER PROCEDURE dbo.CA_InitPatterns @InitialPatternComplexity INT = 2
 AS
 BEGIN
        
@@ -117,10 +121,10 @@ BEGIN
         DECLARE @Session_ID INT;
         SELECT @Session_ID = @@SPID;
             
-        IF @StressLevel IS NULL
-            SET @StressLevel = 2;
+        IF @InitialPatternComplexity IS NULL
+            SET @InitialPatternComplexity = 2;
             
-        IF @StressLevel NOT IN (1,2,3)
+        IF @InitialPatternComplexity NOT IN (1,2,3)
         BEGIN;
             RAISERROR('Input parameters can only be 1 (gentle), 2(moderate), 3 (severe)', 16, 1);
             RETURN;
@@ -131,7 +135,7 @@ BEGIN
             DELETE FROM dbo.Merkle WHERE Session_ID = @Session_ID;
             DELETE FROM dbo.GridReference WHERE Session_ID = @Session_ID;
             
-            IF @StressLevel >= 1
+            IF @InitialPatternComplexity >= 1
             BEGIN
             
                 -- Blinker
@@ -140,7 +144,7 @@ BEGIN
                 INSERT INTO dbo.Merkle(Session_ID, Pattern_ID, x, y) VALUES(@Session_ID, 1,7,8);    
             END
             
-            IF @StressLevel >= 2
+            IF @InitialPatternComplexity >= 2
             BEGIN
             
                 -- Toad
@@ -236,7 +240,7 @@ BEGIN
         
             END;
             
-            IF @StressLevel = 3
+            IF @InitialPatternComplexity = 3
             BEGIN
                 -- 2 Gosper Glider Guns
                 INSERT INTO dbo.Merkle(Session_ID, Pattern_ID, x, y) VALUES(@Session_ID, 1,2,15);
@@ -914,47 +918,14 @@ END -- Procedure
 GO
     
 ---------------------------------------------------------------------------------------------------------------
--- Procedure to generate x enumerations,called by main driver procedure CA_Benchmark
-IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_GenPatterns')
-	EXEC ('CREATE PROC dbo.CA_GenPatterns AS SELECT ''stub version, to be replaced''')
-GO 
-                
-ALTER PROCEDURE dbo.CA_GenPatterns 
-    @BenchmarkStartTime DATETIME, @NewPatternsInBatch INT, @BenchmarkPerspective VARCHAR(3), @StressLevel TINYINT,
-    @Description1 VARCHAR(50) = NULL, @Description2 VARCHAR(50) = NULL, @Description3 VARCHAR(50) = NULL
-AS
-BEGIN
-         
-SET XACT_ABORT, NOCOUNT ON;
-BEGIN TRY
-  
-    -- Generate patterns
-    IF @BenchmarkPerspective = 'IO'
-        EXEC dbo.CA_GenPatterns_IO @NewPatternsInBatch;
-      
-    IF @BenchmarkPerspective = 'CPU'
-        EXEC dbo.CA_GenPatterns_CPU @NewPatternsInBatch;
-              
-END TRY
-BEGIN CATCH
-    IF @@trancount > 0 ROLLBACK TRANSACTION
-    EXEC error_handler_sp
-    RETURN 55555
-END CATCH   
-         
-END;
-GO
-
----------------------------------------------------------------------------------------------------------------
 -- Benchmarking procedure
 IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.ROUTINES WHERE ROUTINE_NAME = 'CA_Benchmark')
 	EXEC ('CREATE PROC dbo.CA_Benchmark AS SELECT ''stub version, to be replaced''')
 GO 
                 
 ALTER PROCEDURE [dbo].[CA_Benchmark]
-    @Batches INT = 1, @CPU_Benchmark BIT = 0, @IO_Benchmark BIT = 1, 
-    @NewPatternsInBatch INT = 3, @DisplayPatterns BIT = 0, @Initialize BIT = 1, @StressLevel TINYINT = 1, 
-    @Description1 VARCHAR(50) = NULL, @Description2 VARCHAR(50) = NULL, @Description3 VARCHAR(50) = NULL
+    @Batches INT = 1, @Geometric_CA BIT = 0, @SetBased_CA BIT = 1, 
+    @AutomationCycles INT = 3, @DisplayPatterns BIT = 0, @Initialize BIT = 1, @InitialPatternComplexity TINYINT = 1
 AS
 BEGIN
        
@@ -968,67 +939,47 @@ BEGIN
         -- SQL Server 2005 compatibility
         SET @CurrentBatch = 0;
         SET @SessionID = @@SPID;
-        SET @BenchmarkStartTime = GETDATE();
-        SET @DefaultHeartBeat = 0;
   
   
         -- Default to all
-        IF @CPU_Benchmark = 0 AND @IO_Benchmark = 0
+        IF @Geometric_CA = 0 AND @SetBased_CA = 0
         BEGIN
-            SET @CPU_Benchmark = 1;
-            SET @IO_Benchmark = 1;
-            SET @Batches = 1;
-            SET @DefaultHeartBeat = 1;
+            RAISERROR('Invalid parameters, select either @Geometric_CA = 1 or @SetBased_CA = 1', 16, 1);
+            RETURN;
         END
      
         -- Validation
-        IF @StressLevel NOT IN (1,2,3) 
+        IF @InitialPatternComplexity NOT IN (1,2,3) 
         BEGIN
-            RAISERROR('Valid stress Levels are 1 (gentle) 2 (mederate) and 3 (severe).', 16, 1);
+            RAISERROR('Valid Initial Pattern Complexity should be 1 (gentle) 2 (mederate) and 3 (severe).', 16, 1);
             RETURN;
         END
   
         -- Initialise for display when batches = 0
-        EXECUTE dbo.CA_InitPatterns @StressLevel = @StressLevel;
+        EXECUTE dbo.CA_InitPatterns @InitialPatternComplexity = @InitialPatternComplexity;
       
         WHILE @CurrentBatch < @Batches
         BEGIN
      
             -- Benchmark CPU
-            IF @CPU_BenchMark = 1
+            IF @Geometric_CA = 1
             BEGIN
                 IF @Initialize = 1
-                    EXECUTE dbo.CA_InitPatterns @StressLevel = @StressLevel;
-  
-                IF @DefaultHeartBeat = 1
-                BEGIN
-                    SET @StressLevel = 3
-                    SET @NewPatternsInBatch = 1
-                END
-                        
-                EXECUTE dbo.CA_GenPatterns 
-                    @BenchmarkStartTime = @BenchmarkStartTime, @NewPatternsInBatch = @NewPatternsInBatch, @BenchmarkPerspective = 'CPU', @StressLevel = @StressLevel,
-                    @Description1 = @Description1, @Description2 = @Description2, @Description3 = @Description3
+                    EXECUTE dbo.CA_InitPatterns @InitialPatternComplexity = @InitialPatternComplexity;
+
+                EXECUTE dbo.CA_GenPatterns_CPU @AutomationCycles;
             END
   
             -- Benchmark IO
-            IF @IO_BenchMark = 1
+            IF @SetBased_CA = 1
             BEGIN
                 IF @Initialize = 1
-                    EXECUTE dbo.CA_InitPatterns @StressLevel = @StressLevel;
+                    EXECUTE dbo.CA_InitPatterns @InitialPatternComplexity = @InitialPatternComplexity;
     
-                IF @DefaultHeartBeat = 1
-                BEGIN
-                    SET @StressLevel = 3
-                    SET @NewPatternsInBatch = 25
-                END
-  
-                EXECUTE dbo.CA_GenPatterns 
-                    @BenchmarkStartTime = @BenchmarkStartTime, @NewPatternsInBatch = @NewPatternsInBatch, @BenchmarkPerspective = 'IO', @StressLevel = @StressLevel,
-                    @Description1 = @Description1, @Description2 = @Description2, @Description3 = @Description3
+                EXECUTE dbo.CA_GenPatterns_IO @AutomationCycles;
             END
   
-            SET @CurrentBatch = @CurrentBatch + 1
+            SET @CurrentBatch = @CurrentBatch + 1;
      
         END
   
