@@ -39,7 +39,6 @@ CREATE TABLE dbo.Merkle
     Pattern_ID INT NOT NULL, 
     x INT NOT NULL, 
     y INT NOT NULL,
-	updated_at TIMESTAMP,
     CONSTRAINT PK_Merkle PRIMARY KEY NONCLUSTERED
     (ID) ON [PRIMARY]
 ) ON [PRIMARY]
